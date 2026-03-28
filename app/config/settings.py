@@ -7,10 +7,13 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_ENV_CANDIDATE = _REPO_ROOT / ".env"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_CANDIDATE) if _ENV_CANDIDATE.is_file() else None,
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -18,7 +21,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
     telegram_bot_token: str = Field(default="", alias="TELEGRAM_BOT_TOKEN")
 
-    sqlite_path: Path = Field(default=Path("bot_chats.db"), alias="SQLITE_PATH")
+    sqlite_path: Path = Field(default_factory=lambda: _REPO_ROOT / "bot_chats.db", alias="SQLITE_PATH")
 
     # Имена моделей (без :tag — подставится первая подходящая из ollama list)
     model_qwen_chat: str = "qwen-pro"
@@ -42,9 +45,9 @@ class Settings(BaseSettings):
 
     ocr_lang: str = "rus+eng"
     ocr_remote_url: str = Field(
-        default="",
+        default="http://localhost:8081/ocr/extract",
         alias="OCR_REMOTE_URL",
-        description="Если непустой — сначала POST файла на URL (multipart, поле file); иначе только локальный OCR.",
+        description="По умолчанию локальный туннель; пустая строка в env отключает remote OCR.",
     )
     ocr_engine: str = Field(
         default="auto",

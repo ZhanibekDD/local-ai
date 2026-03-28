@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import TYPE_CHECKING
 
@@ -45,41 +46,19 @@ def _extract_via_remote(url: str, data: bytes, filename: str) -> tuple[str, list
         fn = body.get("filename")
         if isinstance(fn, str) and fn.strip():
             trace.append(f"remote_filename={fn}")
-        warn = body.get("warnings")
-        if isinstance(warn, list) and warn:
-            trace.append(f"remote_warnings={warn!r}")
-        lg = body.get("language_guess")
-        if isinstance(lg, str) and lg.strip():
-            trace.append(f"remote_language_guess={lg}")
-
-        text_keys = (
-            "text",
-            "raw_text",
-            "raw_text_excerpt",
-            "full_text",
-            "extracted_text",
-            "ocr_text",
-            "content",
-        )
-        for key in text_keys:
-            val = body.get(key)
-            if isinstance(val, str) and val.strip():
+        val = body.get("text")
+        if isinstance(val, str) and val.strip():
+            trace.append("remote_schema=text+trace")
+            return val, trace + ["engine=remote_http"]
+        for key in ("raw_text", "raw_text_excerpt", "extracted_text", "ocr_text", "content"):
+            alt = body.get(key)
+            if isinstance(alt, str) and alt.strip():
                 trace.append(f"remote_json_key={key}")
-                return val, trace + ["engine=remote_http"]
-
-        fields = body.get("fields")
-        if isinstance(fields, dict) and fields:
-            lines: list[str] = []
-            for k, v in fields.items():
-                if isinstance(v, str) and v.strip():
-                    lines.append(f"{k}: {v}")
-                elif v not in (None, "", [], {}):
-                    lines.append(f"{k}: {v!s}")
-            merged = "\n".join(lines).strip()
-            if merged:
-                trace.append("remote_json_key=fields_flat")
-                return merged, trace + ["engine=remote_http"]
-
+                return alt, trace + ["engine=remote_http"]
+        fld = body.get("fields")
+        if isinstance(fld, dict) and fld:
+            trace.append("remote_json_key=fields")
+            return json.dumps(fld, ensure_ascii=False), trace + ["engine=remote_http"]
         raise ValueError("remote OCR JSON без текстового поля")
     text = r.text.strip()
     if not text:
