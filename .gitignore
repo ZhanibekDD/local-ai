@@ -16,3 +16,4 @@ Thumbs.db
 *.egg-info/
 dist/
 build/
+data/sft/build/

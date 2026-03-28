@@ -62,4 +62,25 @@ JSONL из **реальных** задач проекта, например:
 - **LLaMA-Factory** — в документации Qwen часто указывают SFT через него, в т.ч. **LoRA / Q-LoRA / DoRA**.
 - **TRL `SFTTrainer`** — поддержка conversational-датасетов и chat templates для instruct-моделей.
 
-Дальше: зафиксировать формат JSONL под выбранный тренер, версии зависимостей и команду запуска в отдельном скрипте или репозитории окружения обучения — по мере готовности данных.
+## Файлы и скрипты в этом репозитории
+
+| Что | Где |
+|-----|-----|
+| Формат и примеры JSONL | [data/sft/README.md](../data/sft/README.md), `data/sft/custom.example.jsonl` |
+| Валидация строк | `python training/validate_sft_jsonl.py data/sft/custom.example.jsonl` |
+| Слияние нескольких JSONL + shuffle | `python training/merge_jsonl.py a.jsonl b.jsonl -o data/sft/build/merged.jsonl --seed 42` |
+| Сэмпл с Hugging Face | `pip install -e ".[train]"` затем `python training/sample_hf_dataset.py ...` (см. хелп скрипта) |
+
+Примеры выгрузки:
+
+```bash
+pip install -e ".[train]"
+
+python training/sample_hf_dataset.py --dataset HuggingFaceH4/no_robots --split train \
+  -o data/sft/build/no_robots.jsonl
+
+python training/sample_hf_dataset.py --dataset HuggingFaceTB/OpenHermes-2.5-H4 --split train_sft \
+  --max-samples 30000 --seed 42 -o data/sft/build/openhermes_30k.jsonl
+```
+
+Каталог `data/sft/build/` в `.gitignore` — туда складывайте сгенерированные большие файлы. Дальше: LLaMA-Factory или TRL на машине с GPU, указав путь к объединённому JSONL и базовую модель `Qwen/Qwen2.5-14B-Instruct`.

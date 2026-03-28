@@ -29,6 +29,9 @@ dev = [
 ssh = [
     "paramiko>=3.4.0",
 ]
+train = [
+    "datasets>=2.16.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
