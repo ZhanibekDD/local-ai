@@ -28,14 +28,17 @@ Write-Host "  ШАГ 1: Создание SSH туннеля" -ForegroundColor Cy
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Запуск SSH туннеля в фоне..." -ForegroundColor Yellow
-Write-Host "Сервер: YOUR_PUBLIC_HOST:42" -ForegroundColor Gray
+$dh = if ($env:DEPLOY_HOST) { $env:DEPLOY_HOST } else { "YOUR_PUBLIC_HOST" }
+$sp = if ($env:SSH_PORT) { $env:SSH_PORT } else { "42" }
+$su = if ($env:SSH_USER) { $env:SSH_USER } else { "user" }
+Write-Host "Сервер: ${su}@${dh}:${sp} (задайте DEPLOY_HOST/SSH_USER/SSH_PORT)" -ForegroundColor Gray
 Write-Host "Туннель: localhost:11434 -> server:11434" -ForegroundColor Gray
 Write-Host ""
 
-# Запуск SSH туннеля в фоновом задании
 $tunnelJob = Start-Job -ScriptBlock {
-    ssh -p 42 -L 11434:localhost:11434 user@YOUR_PUBLIC_HOST
-}
+    param($h, $p, $u)
+    ssh -p $p -L 11434:localhost:11434 "${u}@${h}"
+} -ArgumentList $dh, $sp, $su
 
 Write-Host "Ожидание установки туннеля (10 сек)..." -ForegroundColor Yellow
 Start-Sleep -Seconds 10
@@ -60,8 +63,8 @@ if (-not $tunnelOk) {
     Write-Host "[ERROR] SSH туннель не установлен!" -ForegroundColor Red
     Write-Host ""
     Write-Host "Запустите туннель вручную в отдельном окне:" -ForegroundColor Yellow
-    Write-Host "  ssh -p 42 -L 11434:localhost:11434 user@YOUR_PUBLIC_HOST" -ForegroundColor White
-    Write-Host "  Пароль: REDACTED" -ForegroundColor White
+    Write-Host "  ssh -p $sp -L 11434:localhost:11434 ${su}@${dh}" -ForegroundColor White
+    Write-Host "  (пароль / ключ — локально, не в скрипте)" -ForegroundColor White
     Write-Host ""
     Write-Host "Затем запустите этот скрипт снова" -ForegroundColor Yellow
     Write-Host ""

@@ -9,15 +9,15 @@
    Правой кнопкой на create-tunnel.ps1 -> "Выполнить с помощью PowerShell"
    
    Или вручную:
-   cd "C:\Users\Администратор\Desktop\DNEPR SERVER"
+   cd "C:\path\to\local-ai"
    .\create-tunnel.ps1
    
-   Введите пароль: REDACTED
+   Введите пароль: ***REDACTED***
    
    ОСТАВЬТЕ ЭТО ОКНО ОТКРЫТЫМ!
 
 2. Откройте ВТОРОЕ окно PowerShell (Терминал 2)
-   cd "C:\Users\Администратор\Desktop\DNEPR SERVER"
+   cd "C:\path\to\local-ai"
    python telegram-bot-local.py
 
 3. Откройте Telegram и найдите бота
@@ -28,11 +28,11 @@
 
 Терминал 1 (SSH туннель):
   ssh -p 42 -L 11434:localhost:11434 user@YOUR_PUBLIC_HOST
-  Пароль: REDACTED
+  Пароль: ***REDACTED***
   НЕ ЗАКРЫВАЙТЕ!
 
 Терминал 2 (Бот):
-  cd "C:\Users\Администратор\Desktop\DNEPR SERVER"
+  cd "C:\path\to\local-ai"
   python telegram-bot-local.py
 
 Терминал 3 (Проверка):

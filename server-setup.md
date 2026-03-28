@@ -184,11 +184,11 @@ python main.py --listen 0.0.0.0 --port 8188
 ### 5.1 Создание пользователя
 ```bash
 # Создать пользователя
-sudo adduser dnepr
-sudo usermod -aG sudo dnepr
+sudo adduser youruser
+sudo usermod -aG sudo youruser
 
 # Переключиться на пользователя
-su - dnepr
+su - youruser
 ```
 
 ### 5.2 Настройка SSH ключей
@@ -220,7 +220,7 @@ PasswordAuthentication no
 PubkeyAuthentication yes
 X11Forwarding no
 MaxAuthTries 3
-AllowUsers dnepr
+AllowUsers youruser
 ```
 
 Перезапуск SSH:
@@ -264,7 +264,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=dnepr
+User=youruser
 ExecStart=/usr/local/bin/ollama serve
 Restart=always
 RestartSec=3

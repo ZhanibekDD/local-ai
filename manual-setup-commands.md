@@ -15,7 +15,7 @@ ssh -p 42 user@192.168.1.1
 ssh root@YOUR_LAN_HOST
 ```
 
-**Пароль:** REDACTED
+**Пароль:** ***REDACTED***
 
 ---
 
@@ -563,7 +563,7 @@ ollama run qwen2.5:72b
 
 # Vision модель с изображением
 ollama run llama3.2-vision:90b
->>> Опиши что на этом изображении /home/dnepr/image.jpg
+>>> Опиши что на этом изображении /home/youruser/image.jpg
 ```
 
 ### Через API (curl):

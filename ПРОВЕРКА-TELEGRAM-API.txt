@@ -1,6 +1,6 @@
 ВЫПОЛНИТЕ НА СЕРВЕРЕ:
 
-REDACTED
+***REDACTED***
 
 curl -v https://api.telegram.org
 

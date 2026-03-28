@@ -5,7 +5,7 @@
 ШАГ 1: Подключитесь к серверу через SSH
 -----------------------------------------
 ssh -p 42 user@YOUR_PUBLIC_HOST
-(пароль: REDACTED)
+(пароль: ***REDACTED***)
 
 
 ШАГ 2: Установите Python библиотеки
@@ -125,8 +125,8 @@ After=ollama.service
 
 [Service]
 Type=simple
-User=dnepr
-WorkingDirectory=/home/dnepr/telegram-bot
+User=youruser
+WorkingDirectory=/home/youruser/telegram-bot
 ExecStart=/usr/bin/python3 bot.py
 Restart=always
 RestartSec=10

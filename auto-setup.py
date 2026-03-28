@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
+import os
+import sys
 import paramiko
 import time
 
-IP = "YOUR_PUBLIC_HOST"
-PORT = 42
-USER = "dnepr"
-PASS = "REDACTED"
+IP = os.environ.get("DEPLOY_HOST", "YOUR_PUBLIC_HOST")
+PORT = int(os.environ.get("SSH_PORT", "42"))
+USER = os.environ.get("SSH_USER", "user")
+PASS = os.environ.get("SSH_PASSWORD")
+if not PASS:
+    sys.exit("Задайте SSH_PASSWORD в окружении")
 
 print("Подключение к", IP)
 client = paramiko.SSHClient()
@@ -82,7 +86,7 @@ run('ollama run qwen2.5:72b "Напиши Hello World на Python"')
 print("\n" + "="*70)
 print("ГОТОВО!")
 print("="*70)
-print(f"\nSSH: ssh -p 42 user@{IP}")
+print(f"\nSSH: ssh -p {PORT} {USER}@{IP}")
 print(f"API: http://{IP}:11434\n")
 
 client.close()

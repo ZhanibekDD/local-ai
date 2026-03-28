@@ -4,15 +4,17 @@
 Ubuntu Server 22.04 LTS
 """
 
+import os
 import paramiko
 import time
 import sys
 
-# Конфигурация
-SERVER_IP = "YOUR_LAN_HOST"
-USERNAME = "dnepr"
-PASSWORD = "REDACTED"
-SSH_PORT = 22
+SERVER_IP = os.environ.get("DEPLOY_HOST", "YOUR_LAN_HOST")
+USERNAME = os.environ.get("SSH_USER", "user")
+PASSWORD = os.environ.get("SSH_PASSWORD")
+SSH_PORT = int(os.environ.get("SSH_PORT", "22"))
+if not PASSWORD:
+    sys.exit("Задайте SSH_PASSWORD в окружении")
 
 class ServerSetup:
     def __init__(self):

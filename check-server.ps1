@@ -80,7 +80,7 @@ Write-Host ""
 if ($pingResult) {
     Write-Host "[*] Сервер доступен в сети" -ForegroundColor Green
     Write-Host "[*] Попробуйте подключиться:" -ForegroundColor Cyan
-    Write-Host "    ssh user@$serverIP" -ForegroundColor White
+    Write-Host "    ssh youruser@$serverIP" -ForegroundColor White
     Write-Host ""
     Write-Host "[*] Или запустите автоустановку:" -ForegroundColor Cyan
     Write-Host "    python auto-install.py" -ForegroundColor White

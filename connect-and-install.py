@@ -4,15 +4,17 @@
 Внешний IP: YOUR_PUBLIC_HOST
 """
 
+import os
 import paramiko
 import time
 import sys
 
-# Конфигурация
-EXTERNAL_IP = "YOUR_PUBLIC_HOST"
-SSH_PORT = 42
-USERNAME = "dnepr"
-PASSWORD = "REDACTED"
+EXTERNAL_IP = os.environ.get("DEPLOY_HOST", "YOUR_PUBLIC_HOST")
+SSH_PORT = int(os.environ.get("SSH_PORT", "42"))
+USERNAME = os.environ.get("SSH_USER", "user")
+PASSWORD = os.environ.get("SSH_PASSWORD")
+if not PASSWORD:
+    sys.exit("Задайте SSH_PASSWORD в окружении")
 
 def connect_and_setup():
     """Подключение и установка"""
@@ -184,7 +186,7 @@ sudo systemctl enable ollama
     print("\n" + "="*70)
     print("УСТАНОВКА ЗАВЕРШЕНА!")
     print("="*70)
-    print(f"\n[+] SSH доступ: ssh -p 42 user@{EXTERNAL_IP}")
+    print(f"\n[+] SSH доступ: ssh -p {SSH_PORT} {USERNAME}@{EXTERNAL_IP}")
     print(f"[+] Ollama API: http://{EXTERNAL_IP}:11434")
     print("\n[*] Примеры использования:")
     print("  ollama run qwen2.5:72b")

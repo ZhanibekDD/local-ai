@@ -1,7 +1,7 @@
 # Скрипт загрузки AI моделей (запускать после перезагрузки сервера)
 
 $serverIP = "YOUR_LAN_HOST"
-$username = "dnepr"
+$username = "youruser"
 
 Write-Host "=== Загрузка AI моделей ===" -ForegroundColor Green
 Write-Host ""

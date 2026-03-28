@@ -8,12 +8,12 @@
 
 Затем выполните:
 
-cd "C:\Users\Администратор\Desktop\DNEPR SERVER"
+cd "C:\path\to\local-ai"
 ssh -p 42 -L 11434:localhost:11434 user@YOUR_PUBLIC_HOST
 
-Введите пароль: REDACTED
+Введите пароль: ***REDACTED***
 
-Вы увидите приглашение: user@dnepr:~$
+Вы увидите приглашение shell на сервере (user@hostname:~$)
 
 ОСТАВЬТЕ ЭТО ОКНО ОТКРЫТЫМ!
 
@@ -24,7 +24,7 @@ ssh -p 42 -L 11434:localhost:11434 user@YOUR_PUBLIC_HOST
 
 Затем выполните:
 
-cd "C:\Users\Администратор\Desktop\DNEPR SERVER"
+cd "C:\path\to\local-ai"
 python telegram-bot-local.py
 
 Вы увидите:

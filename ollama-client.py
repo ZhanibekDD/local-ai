@@ -3,14 +3,15 @@
 Клиент для работы с Ollama API на сервере Dell R760
 """
 
+import os
 import requests
 import json
 import base64
 import sys
 from pathlib import Path
 
-# Конфигурация
-OLLAMA_URL = "http://YOUR_LAN_HOST:11434"
+# Конфигурация (по умолчанию локальный туннель/OLLAMA)
+OLLAMA_URL = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 
 class OllamaClient:
     def __init__(self, base_url=OLLAMA_URL):

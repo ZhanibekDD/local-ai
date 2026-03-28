@@ -7,10 +7,10 @@
 Правой кнопкой на start-tunnel.ps1 -> "Выполнить с помощью PowerShell"
 
 Или в PowerShell:
-  cd "C:\Users\Администратор\Desktop\DNEPR SERVER"
+  cd "C:\path\to\local-ai"
   .\start-tunnel.ps1
 
-Введите пароль: REDACTED
+Введите пароль: ***REDACTED***
 
 ВАЖНО: НЕ ЗАКРЫВАЙТЕ это окно!
 
@@ -20,7 +20,7 @@
 Правой кнопкой на start-bot.ps1 -> "Выполнить с помощью PowerShell"
 
 Или в PowerShell:
-  cd "C:\Users\Администратор\Desktop\DNEPR SERVER"
+  cd "C:\path\to\local-ai"
   .\start-bot.ps1
 
 
@@ -35,10 +35,10 @@
 
 Терминал 1:
   ssh -p 42 -L 11434:localhost:11434 user@YOUR_PUBLIC_HOST
-  (пароль: REDACTED)
+  (пароль: ***REDACTED***)
 
 Терминал 2:
-  cd "C:\Users\Администратор\Desktop\DNEPR SERVER"
+  cd "C:\path\to\local-ai"
   python telegram-bot-local.py
 
 

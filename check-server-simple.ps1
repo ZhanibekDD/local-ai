@@ -37,7 +37,7 @@ try {
 
 Write-Host ""
 if ($ping) {
-    Write-Host "Next step: ssh user@$serverIP" -ForegroundColor Cyan
+    Write-Host "Next step: ssh youruser@$serverIP" -ForegroundColor Cyan
 } else {
     Write-Host "Server is not accessible. Check:" -ForegroundColor Yellow
     Write-Host "  1. Server is powered on" -ForegroundColor White

@@ -4,14 +4,17 @@
 IP: YOUR_PUBLIC_HOST:42
 """
 
+import os
 import paramiko
 import time
 import sys
 
-IP = "YOUR_PUBLIC_HOST"
-PORT = 42
-USER = "dnepr"
-PASS = "REDACTED"
+IP = os.environ.get("DEPLOY_HOST", "YOUR_PUBLIC_HOST")
+PORT = int(os.environ.get("SSH_PORT", "42"))
+USER = os.environ.get("SSH_USER", "user")
+PASS = os.environ.get("SSH_PASSWORD")
+if not PASS:
+    sys.exit("Задайте SSH_PASSWORD в окружении")
 
 def main():
     print("="*70)
@@ -121,7 +124,7 @@ def main():
     print("\n" + "="*70)
     print("ГОТОВО!")
     print("="*70)
-    print(f"\nSSH: ssh -p 42 user@{IP}")
+    print(f"\nSSH: ssh -p {PORT} {USER}@{IP}")
     print(f"API: http://{IP}:11434")
     
     client.close()

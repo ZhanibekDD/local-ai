@@ -18,12 +18,12 @@
 
 3. Войдите в iDRAC:
    Username: root
-   Password: calvin (или с наклейки)
+   Password: <BMC password per vendor> (или с наклейки)
 
 4. В iDRAC:
    - Проверьте что сервер включен
    - Откройте Virtual Console
-   - Войдите в Ubuntu: dnepr / REDACTED
+   - Войдите в Ubuntu: youruser / ***REDACTED***
 
 --------------------------------------------------------------------------------
 ВАРИАНТ 2: Физический доступ
@@ -32,8 +32,8 @@
 1. Подключите монитор и клавиатуру к серверу
 2. Включите сервер (если выключен)
 3. Войдите в систему:
-   Username: dnepr
-   Password: REDACTED
+   Username: youruser
+   Password: ***REDACTED***
 
 --------------------------------------------------------------------------------
 ВАРИАНТ 3: Проверьте роутер
@@ -117,8 +117,8 @@ Vision:
 Email: admin@example.com
 Server: Dell R760
 IP: YOUR_LAN_HOST
-User: dnepr
-Pass: REDACTED
+User: youruser
+Pass: ***REDACTED***
 
 ================================================================================
 СЛЕДУЮЩИЙ ШАГ: Получите доступ к серверу через iDRAC или физически

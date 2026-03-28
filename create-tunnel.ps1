@@ -1,17 +1,19 @@
-# Создание SSH туннеля с автоматическим вводом пароля
-$password = "REDACTED"
-$securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+# SSH-туннель Ollama: 11434 на сервере -> localhost:11434
+# Задайте: $env:SSH_PASSWORD = "..."  и при необходимости $env:SSH_USER, $env:DEPLOY_HOST, $env:SSH_PORT
 
-Write-Host "Создание SSH туннеля к серверу Dell R760..." -ForegroundColor Green
-Write-Host "Порт 11434 (Ollama API) -> localhost:11434" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "ВАЖНО: Оставьте это окно открытым!" -ForegroundColor Red
-Write-Host ""
+$ErrorActionPreference = "Stop"
+$user = if ($env:SSH_USER) { $env:SSH_USER } else { "user" }
+$host = if ($env:DEPLOY_HOST) { $env:DEPLOY_HOST } else { throw "Установите DEPLOY_HOST (хост SSH)" }
+$port = if ($env:SSH_PORT) { [int]$env:SSH_PORT } else { 22 }
+if (-not $env:SSH_PASSWORD) {
+    Write-Error "Установите переменную окружения SSH_PASSWORD"
+    exit 1
+}
 
-# Используем plink (PuTTY) если доступен, иначе обычный ssh
+Write-Host "Туннель: ${user}@${host}:${port} -> localhost:11434 (оставьте окно открытым)" -ForegroundColor Green
+
 if (Get-Command plink -ErrorAction SilentlyContinue) {
-    echo $password | plink -ssh -P 42 -L 11434:localhost:11434 user@YOUR_PUBLIC_HOST -pw $password
+    echo $env:SSH_PASSWORD | plink -ssh -P $port -L 11434:localhost:11434 "${user}@${host}" -pw $env:SSH_PASSWORD
 } else {
-    # Обычный SSH (потребует ввод пароля вручную)
-    ssh -p 42 -L 11434:localhost:11434 user@YOUR_PUBLIC_HOST
+    ssh -p $port -L 11434:localhost:11434 "${user}@${host}"
 }

@@ -4,14 +4,17 @@
 Внешний IP: YOUR_PUBLIC_HOST:42
 """
 
+import os
 import paramiko
 import time
 import sys
 
-EXTERNAL_IP = "YOUR_PUBLIC_HOST"
-SSH_PORT = 42
-USERNAME = "dnepr"
-PASSWORD = "REDACTED"
+EXTERNAL_IP = os.environ.get("DEPLOY_HOST", "YOUR_PUBLIC_HOST")
+SSH_PORT = int(os.environ.get("SSH_PORT", "42"))
+USERNAME = os.environ.get("SSH_USER", "user")
+PASSWORD = os.environ.get("SSH_PASSWORD")
+if not PASSWORD:
+    sys.exit("Задайте SSH_PASSWORD в окружении")
 
 class Colors:
     GREEN = '\033[92m'
@@ -226,7 +229,7 @@ def main():
     print("УСТАНОВКА ЗАВЕРШЕНА!")
     print("="*70)
     
-    print(f"\n{Colors.GREEN}✓ SSH доступ:{Colors.END} ssh -p 42 user@{EXTERNAL_IP}")
+    print(f"\n{Colors.GREEN}✓ SSH доступ:{Colors.END} ssh -p {SSH_PORT} {USERNAME}@{EXTERNAL_IP}")
     print(f"{Colors.GREEN}✓ Ollama API:{Colors.END} http://{EXTERNAL_IP}:11434")
     
     print(f"\n{Colors.BLUE}Установленные модели:{Colors.END}")

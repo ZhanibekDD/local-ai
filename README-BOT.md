@@ -38,7 +38,7 @@
 ```powershell
 ssh -p 42 -L 11434:localhost:11434 user@YOUR_PUBLIC_HOST
 ```
-Пароль: `REDACTED`
+Пароль: `***REDACTED***`
 
 **Терминал 2** (Бот):
 ```powershell
