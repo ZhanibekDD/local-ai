@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     retry_backoff_sec: float = 0.5
 
     ocr_lang: str = "rus+eng"
+    ocr_remote_url: Optional[str] = Field(
+        default=None,
+        alias="OCR_REMOTE_URL",
+        description="Если задан — сначала POST файла на этот URL (multipart, поле file), иначе локальный OCR по OCR_ENGINE.",
+    )
     ocr_engine: str = Field(
         default="auto",
         description="auto: текст PDF → при необходимости OCR; pymupdf: только текст слоя; tesseract: растр+Tesseract; paddle: PaddleOCR если установлен, иначе как auto",

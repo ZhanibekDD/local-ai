@@ -2,7 +2,9 @@
 
 ## Реализация (`app/ocr/extract_text.py`)
 
-Переменная **`OCR_ENGINE`** (см. `Settings.ocr_engine`) задаёт фактическое поведение:
+Переменная **`OCR_REMOTE_URL`** (см. `.env.example`): если задана непустая строка, сначала выполняется **POST** файла на этот URL (`multipart/form-data`, поле **`file`**). Ответ: JSON с одним из полей `text` / `raw_text` / `extracted_text` / `ocr_text` / `content`, либо обычный текст. При ошибке HTTP/формата — **fallback** на локальные движки ниже.
+
+Переменная **`OCR_ENGINE`** (см. `Settings.ocr_engine`) задаёт локальное поведение (если remote не задан или упал):
 
 | Значение | PDF | Изображение |
 |----------|-----|-------------|

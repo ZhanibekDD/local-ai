@@ -13,7 +13,7 @@ pip install -e .
 pip install -e ".[dev,ssh]"
 ```
 
-3. Скопируйте `.env.example` в `.env` и задайте `TELEGRAM_BOT_TOKEN`. При необходимости — `OLLAMA_BASE_URL` (по умолчанию `http://localhost:11434`).
+3. Скопируйте `.env.example` в `.env` и задайте `TELEGRAM_BOT_TOKEN`. При необходимости — `OLLAMA_BASE_URL` (по умолчанию `http://localhost:11434`). Для внешнего OCR-сервиса — `OCR_REMOTE_URL` (например `http://localhost:8081/ocr/extract`); пустое значение отключает remote.
 4. Убедитесь, что Ollama доступен (например SSH-туннель на порт 11434).
 5. Запуск Telegram-бота из корня проекта:
 

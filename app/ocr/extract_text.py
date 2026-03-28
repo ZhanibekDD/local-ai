@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+import requests
+
 from app.config.settings import get_settings
 from app.ocr.pdf_text import extract_pdf_text
 from app.ocr.tesseract_backend import TesseractEngine
@@ -13,6 +15,34 @@ if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_via_remote(url: str, data: bytes, filename: str) -> tuple[str, list[str]]:
+    """POST multipart/form-data, поле ``file``. Ответ: JSON с text/raw_text/extracted_text/content или text/plain."""
+    trace = [f"remote_post={url}"]
+    safe_name = filename.strip() or "document.bin"
+    r = requests.post(
+        url,
+        files={"file": (safe_name, data)},
+        timeout=(15, 180),
+    )
+    r.raise_for_status()
+    try:
+        body = r.json()
+    except ValueError:
+        body = None
+    if isinstance(body, dict):
+        for key in ("text", "raw_text", "extracted_text", "ocr_text", "content"):
+            val = body.get(key)
+            if isinstance(val, str) and val.strip():
+                trace.append(f"remote_json_key={key}")
+                return val, trace
+        raise ValueError("remote OCR JSON без текстового поля")
+    text = r.text.strip()
+    if not text:
+        raise ValueError("remote OCR пустой ответ")
+    trace.append("remote_body=plain")
+    return text, trace
 
 
 def _bytes_looks_pdf(b: bytes) -> bool:
@@ -44,9 +74,20 @@ def extract_text_from_file(data: bytes, filename: str) -> tuple[str, list[str]]:
       pymupdf — только текстовый слой PDF; изображения без Tesseract (пусто + предупреждение в trace).
       tesseract — для PDF всегда растр+OCR; изображения — Tesseract.
       paddle — если установлен PaddleOCR; иначе trace paddle_fallback и режим как auto.
+
+    Если задан OCR_REMOTE_URL — сначала HTTP POST (поле file); при ошибке — fallback на локальный OCR_ENGINE.
     """
     trace: list[str] = []
     s = get_settings()
+    remote = (s.ocr_remote_url or "").strip()
+    if remote:
+        try:
+            text, tr = _extract_via_remote(remote, data, filename)
+            return text, tr + ["engine=remote_http"]
+        except Exception as e:
+            logger.warning("remote OCR failed, local fallback: %s", e)
+            trace.append(f"remote_ocr_error:{type(e).__name__}:{e}")
+
     mode = (s.ocr_engine or "auto").strip().lower()
 
     if mode == "paddle":
