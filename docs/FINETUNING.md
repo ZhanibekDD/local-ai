@@ -84,3 +84,9 @@ python training/sample_hf_dataset.py --dataset HuggingFaceTB/OpenHermes-2.5-H4 -
 ```
 
 Каталог `data/sft/build/` в `.gitignore` — туда складывайте сгенерированные большие файлы. Дальше: LLaMA-Factory или TRL на машине с GPU, указав путь к объединённому JSONL и базовую модель `Qwen/Qwen2.5-14B-Instruct`.
+
+### Один раз на сервере (после SSH)
+
+Скрипт в репозитории: `training/bootstrap_on_server.sh` — клонирует/обновляет репо в `~/local-ai`, создаёт `.venv`, ставит пакет с extra `train`. Запуск на машине с Linux:
+
+`bash training/bootstrap_on_server.sh` (из каталога уже клонированного репо) или скачать сырой файл с GitHub и выполнить `bash bootstrap_on_server.sh`. Переменные: `LOCAL_AI_REPO_URL`, `LOCAL_AI_HOME`.
