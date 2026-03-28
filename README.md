@@ -16,7 +16,7 @@
 | **`eval/`** | Прогоны и отчёты по кейсам |
 | **`app/api/`** | FastAPI: `/health`, `/v1/models` |
 
-Подробнее: [ARCHITECTURE.md](ARCHITECTURE.md), [ROUTING.md](ROUTING.md), [OCR_PIPELINE.md](OCR_PIPELINE.md), [EVAL.md](EVAL.md), [QUICKSTART.md](QUICKSTART.md), [docs/FINETUNING.md](docs/FINETUNING.md) (первый цикл SFT: Qwen2.5-14B-Instruct, датасеты, объёмы). Данные и скрипты под SFT: [data/sft/README.md](data/sft/README.md), каталог `training/`.
+Подробнее: [ARCHITECTURE.md](ARCHITECTURE.md), [ROUTING.md](ROUTING.md), [OCR_PIPELINE.md](OCR_PIPELINE.md), [EVAL.md](EVAL.md), [QUICKSTART.md](QUICKSTART.md), [docs/FINETUNING.md](docs/FINETUNING.md) (первый цикл SFT: Qwen2.5-14B-Instruct, датасеты, объёмы). Данные и скрипты под SFT: [data/sft/README.md](data/sft/README.md), каталог `training/`. **Пошагово на своём сервере:** [docs/RUNBOOK-SERVER.md](docs/RUNBOOK-SERVER.md).
 
 ## Требования
 
