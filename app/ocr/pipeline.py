@@ -48,9 +48,10 @@ def extract_text_from_file(
             import fitz
 
             doc = fitz.open(stream=data, filetype="pdf")
+            mat = fitz.Matrix(2.0, 2.0)
             chunks: list[str] = []
             for i in range(min(doc.page_count, 20)):
-                pix = doc.load_page(i).get_pixmap(dpi=150)
+                pix = doc.load_page(i).get_pixmap(matrix=mat)
                 img_bytes = pix.tobytes("png")
                 r = eng.image_to_text(img_bytes)
                 chunks.append(r.text)

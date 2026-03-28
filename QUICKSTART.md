@@ -9,10 +9,27 @@ pip install -r requirements-app.txt
 
 3. Скопируйте `.env.example` в `.env` и задайте `TELEGRAM_BOT_TOKEN`. При необходимости — `OLLAMA_BASE_URL` (по умолчанию `http://localhost:11434`).
 4. Убедитесь, что Ollama доступен (например SSH-туннель на порт 11434).
-5. Запуск бота из корня проекта:
+5. Запуск Telegram-бота из корня проекта:
 
 ```bash
 python telegram-bot-advanced.py
 ```
 
-6. Опционально: создать профили Ollama из `modelfiles/*.Modelfile` и при желании сменить имена моделей в настройках.
+Нужны переменные `TELEGRAM_BOT_TOKEN` и доступный Ollama (`OLLAMA_BASE_URL`, по умолчанию `http://localhost:11434`).
+
+6. Опционально — локальный HTTP для проверки (health и список моделей через Ollama):
+
+```bash
+uvicorn app.api.main:app --host 127.0.0.1 --port 8080
+```
+
+Откройте `http://127.0.0.1:8080/health` и `http://127.0.0.1:8080/v1/models`.
+
+7. Eval (при работающем Ollama):
+
+```bash
+python eval/run_eval.py
+python eval/generate_report.py
+```
+
+8. Профили Ollama: см. `modelfiles/*.Modelfile` — при желании `ollama create …` и имена в `.env`.

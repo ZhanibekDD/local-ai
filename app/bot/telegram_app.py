@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from typing import Optional
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -24,12 +23,35 @@ from app.llm.ollama_client import OllamaClient
 from app.memory.context import format_chat_context
 from app.memory.store import ChatManager, init_db
 from app.ocr.pipeline import run_document_extraction
+from app.ocr.schema_pick import pick_document_schema
 from app.router.classifier import classify_incoming
+from app.router.explain import route_help_short
 from app.router.types import TaskType
-from app.schemas.receipt import ReceiptExtraction
 from app.vision.service import VisionMode, vision_analyze
 
 logger = logging.getLogger(__name__)
+
+HELP_TEXT = """📖 Помощь
+
+💬 Текст — диалог с памятью чата; маршрут: чат / JSON / код (по смыслу).
+🧠 /reason — режим «РАССУЖДЕНИЕ» + «ОТВЕТ».
+💾 /chats — список чатов; кнопки «Мои чаты», «Новый чат».
+🖼 Фото — анализ сцены; подпись про чек/накладную — OCR + поля.
+📄 PDF/фото как файл — извлечение реквизитов (чек или накладная по имени).
+
+/route — как выбирается маршрут (без вызова модели).
+"""
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = HELP_TEXT
+    for i in range(0, len(text), 4000):
+        await update.message.reply_text(text[i : i + 4000])
+
+
+async def route_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    t = route_help_short()
+    await update.message.reply_text(t[:4000])
 
 
 def _kb_main(user_id: int, cm: ChatManager) -> InlineKeyboardMarkup:
@@ -203,19 +225,25 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         mime="image/jpeg",
     )
     client = OllamaClient()
+    text_out = ""
     try:
         if decision.task == TaskType.DOCUMENT_OCR:
+            schema_cls = pick_document_schema("image.jpg", caption)
             res = await asyncio.to_thread(
                 run_document_extraction,
                 client,
                 data,
                 "image.jpg",
-                ReceiptExtraction,
+                schema_cls,
                 caption,
             )
             text_out = (
                 f"OCR trace: {res.engine_trace}\n\n"
-                + (res.raw_text[:2000] if res.structured is None else res.structured.model_dump_json(indent=2))
+                + (
+                    res.raw_text[:2000]
+                    if res.structured is None
+                    else res.structured.model_dump_json(indent=2)
+                )
             )
         else:
             text_out = await asyncio.to_thread(
@@ -224,13 +252,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 data,
                 VisionMode.BASE,
             )
+    except Exception as e:
+        logger.exception("handle_photo")
+        text_out = f"Ошибка обработки фото: {e}"
     finally:
         await status.delete()
 
     chat_id = cm.get_or_create_active_chat(uid)
     cm.add_message(chat_id, "user", f"[фото] {caption}")
     cm.add_message(chat_id, "assistant", text_out)
-    await update.message.reply_text(text_out[:4000])
+    for i in range(0, len(text_out), 4000):
+        await update.message.reply_text(text_out[i : i + 4000])
 
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -244,24 +276,31 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     fname = doc.file_name or "file.bin"
     data = await _download_tg_file(context, doc.file_id)
     client = OllamaClient()
-    res = await asyncio.to_thread(
-        run_document_extraction,
-        client,
-        data,
-        fname,
-        ReceiptExtraction,
-        "",
-    )
+    schema_cls = pick_document_schema(fname, "")
+    out = ""
+    try:
+        res = await asyncio.to_thread(
+            run_document_extraction,
+            client,
+            data,
+            fname,
+            schema_cls,
+            "",
+        )
+        out = (
+            res.structured.model_dump_json(indent=2)
+            if res.structured
+            else f"Не удалось структурировать.\nRaw:\n{res.raw_text[:3500]}\n\n{res.status}"
+        )
+    except Exception as e:
+        logger.exception("handle_document")
+        out = f"Ошибка документа: {e}"
     await status.delete()
-    out = (
-        res.structured.model_dump_json(indent=2)
-        if res.structured
-        else f"Не удалось структурировать.\nRaw:\n{res.raw_text[:3500]}\n\n{res.status}"
-    )
     chat_id = cm.get_or_create_active_chat(uid)
     cm.add_message(chat_id, "user", f"[документ {fname}]")
     cm.add_message(chat_id, "assistant", out)
-    await update.message.reply_text(out[:4000])
+    for i in range(0, len(out), 4000):
+        await update.message.reply_text(out[i : i + 4000])
 
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -309,10 +348,45 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await query.edit_message_text("Модели:\n" + "\n".join(f"• {m}" for m in models)[:4000])
     elif query.data == "status":
         client = OllamaClient()
-        ok = await asyncio.to_thread(lambda: bool(client.list_models()))
-        await query.edit_message_text("Ollama: " + ("OK" if ok else "недоступен"))
+        models = await asyncio.to_thread(client.list_models)
+        if models:
+            body = "Ollama: OK\nМоделей: %d\n%s" % (
+                len(models),
+                "\n".join("• " + m for m in models[:25]),
+            )
+        else:
+            body = "Ollama: недоступен или нет моделей"
+        await query.edit_message_text(
+            body[:4000],
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
+        )
+    elif query.data == "help_ask":
+        await query.edit_message_text(
+            "💬 Напишите сообщение в чат — ответит Qwen (или JSON/код по ключевым словам в тексте).",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
+        )
+    elif query.data == "help_code":
+        await query.edit_message_text(
+            "💻 Задачи с кодом, SQL, скриптами — маршрутизатор выберет DeepSeek Coder.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
+        )
+    elif query.data == "help_vision":
+        await query.edit_message_text(
+            "🖼 Фото без «документных» слов в подписи — описание через Llama Vision. "
+            "Если нужен чек/накладная — напишите в подписи или пришлите файлом.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
+        )
+    elif query.data == "help":
+        await query.edit_message_text(
+            HELP_TEXT[:4000],
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
+        )
     else:
-        await query.edit_message_text("Раздел в разработке.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]))
+        logger.warning("unknown callback_data=%s", query.data)
+        await query.edit_message_text(
+            "Неизвестная кнопка.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
+        )
 
 
 def main() -> None:
@@ -333,6 +407,8 @@ def main() -> None:
     app = Application.builder().token(token.strip()).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("chats", my_chats_command))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("route", route_command))
     app.add_handler(CommandHandler("reason", reason_command))
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

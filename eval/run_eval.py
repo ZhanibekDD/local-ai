@@ -52,6 +52,7 @@ def run_one(case: dict[str, Any], client: OllamaClient) -> dict[str, Any]:
         out["latency_ms"] = (time.perf_counter() - t0) * 1000
         out["ok"] = not str(r.get("response", "")).startswith("Error")
         out["route"] = r.get("route")
+        out["fallback"] = bool(r.get("fallback"))
         return out
 
     if suite == "code_eval":
@@ -59,6 +60,7 @@ def run_one(case: dict[str, Any], client: OllamaClient) -> dict[str, Any]:
         out["latency_ms"] = (time.perf_counter() - t0) * 1000
         out["ok"] = r.get("route") == "code" or "```" in str(r.get("response", ""))
         out["route"] = r.get("route")
+        out["fallback"] = bool(r.get("fallback"))
         return out
 
     if suite == "vision_docs_eval":

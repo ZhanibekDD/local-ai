@@ -20,4 +20,4 @@ python eval/generate_report.py --run eval/reports/last_run.jsonl
 python eval/compare_outputs.py eval/reports/run_a.jsonl eval/reports/run_b.jsonl
 ```
 
-Метрики в `eval/reports/summary.json`: `ok_rate`, `valid_json_rate` (если есть поля), `average_latency_ms`.
+Метрики в `eval/reports/summary.json`: `ok_rate`, `valid_json_rate` (если есть поля), `average_latency_ms`, `fallback_rate` (если в прогоне есть поле `fallback`).

@@ -12,6 +12,7 @@ from app.config.settings import get_settings
 from app.llm.ollama_client import OllamaClient, pick_model
 from app.llm.profiles import QwenProfile, profile_config, wrap_prompt
 from app.validators.json_utils import repair_and_validate
+from app.validators.retry_policy import log_structured_retry
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
@@ -61,7 +62,7 @@ def generate_structured(
             wrap_prompt(QwenProfile.JSON, user_prompt + "\n\n" + schema_prompt(model_cls), rag_context)
             + f"\n\nПредыдущий ответ невалиден: {st}. Исправь JSON."
         )
-        logger.warning("structured retry %s: %s", attempt + 1, st)
+        log_structured_retry(attempt + 1, st)
 
     return None, last_status, s.retry_max + 2
 
@@ -102,6 +103,7 @@ def generate_structured_with_image(
         if obj is not None:
             return obj, "ok", attempt + 1
         last_status = st
+        log_structured_retry(attempt + 1, st)
         base = (
             wrap_prompt(QwenProfile.JSON, user_block)
             + f"\n\nПредыдущий ответ невалиден: {st}. Исправь JSON."

@@ -8,11 +8,12 @@ from typing import Any
 
 from app.config.settings import get_settings
 from app.llm.ollama_client import OllamaClient, pick_model
-from app.llm.profiles import QwenProfile, profile_config, wrap_prompt
+from app.llm.profiles import QwenProfile, wrap_prompt
 from app.router.classifier import classify_incoming
 from app.router.types import TaskType
 from app.schemas.flexible import FlexibleExtraction
 from app.structured.output import generate_structured
+from app.validators.retry_policy import log_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,6 @@ def process_text_chat(
         model = _code_pref(models)
         out["model"] = model
         prompt = f"{conversation_context}\n\nПользователь: {user_message}\n\nОтвет (код/технически точно):"
-        cfg = profile_config(QwenProfile.CHAT)
         ok, text = client.generate(
             model,
             prompt,
@@ -90,9 +90,9 @@ def process_text_chat(
         else:
             out["response"] = f"Не удалось получить валидный JSON: {st}. Пробую обычный ответ."
             out["fallback"] = True
+            log_fallback("json_to_chat", detail=st)
             model2 = _qwen_pref(models)
             p2 = wrap_prompt(QwenProfile.CHAT, f"{conversation_context}\n\nПользователь: {user_message}")
-            cfg = profile_config(QwenProfile.CHAT)
             ok, text = client.generate(
                 model2,
                 p2,

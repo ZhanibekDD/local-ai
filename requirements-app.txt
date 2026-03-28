@@ -4,6 +4,10 @@ pydantic-settings>=2.1.0
 python-telegram-bot>=21.0
 requests>=2.31.0
 
+# Локальный HTTP (health / models), опционально для мониторинга
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+
 # PDF / изображения (OCR pipeline)
 pymupdf>=1.24.0
 Pillow>=10.0.0

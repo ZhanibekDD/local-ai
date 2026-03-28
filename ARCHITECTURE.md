@@ -23,3 +23,11 @@
 ## Точка входа
 
 `telegram-bot-advanced.py` добавляет корень проекта в `sys.path` и вызывает `app.bot.telegram_app:main`.
+
+## HTTP (опционально)
+
+`app/api/main.py` — FastAPI: `GET /health`, `GET /v1/models` (прокси к локальному Ollama). Запуск: `uvicorn app.api.main:app --host 127.0.0.1 --port 8080`.
+
+## Документы OCR
+
+`app/ocr/schema_pick.py` выбирает схему **чек** (`ReceiptExtraction`) или **накладная** (`InvoiceExtraction`) по имени файла и подписи.

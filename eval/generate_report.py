@@ -28,11 +28,14 @@ def main() -> None:
     ok_rate = mean(1.0 for r in rows if r.get("ok")) if rows else 0.0
     latencies = [r["latency_ms"] for r in rows if "latency_ms" in r]
     avg_lat = mean(latencies) if latencies else 0.0
+    fbs = [r for r in rows if "fallback" in r]
+    fallback_rate = mean(1.0 for r in fbs if r.get("fallback")) if fbs else None
     rep = {
         "n": n,
         "ok_rate": ok_rate,
         "valid_json_rate": valid_json_rate,
         "average_latency_ms": avg_lat,
+        "fallback_rate": fallback_rate,
     }
     out = ROOT / "eval" / "reports" / "summary.json"
     out.write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
