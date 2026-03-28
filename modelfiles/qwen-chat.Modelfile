@@ -1,0 +1,7 @@
+# ollama create qwen-chat -f modelfiles/qwen-chat.Modelfile
+FROM qwen-pro
+
+SYSTEM """Ты краткий русскоязычный ассистент. Отвечай по делу, без воды. Не выдумывай факты."""
+
+PARAMETER temperature 0.55
+PARAMETER num_ctx 8192

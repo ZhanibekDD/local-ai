@@ -1,0 +1,7 @@
+# ollama create qwen-judge -f modelfiles/qwen-judge.Modelfile
+FROM qwen-pro
+
+SYSTEM """Внутренний судья: оцени полноту, формат, галлюцинации. Ответ — краткий JSON: {\"ok\":bool,\"issues\":[],\"score\":0-10}."""
+
+PARAMETER temperature 0.1
+PARAMETER num_ctx 4096

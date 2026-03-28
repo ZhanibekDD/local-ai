@@ -1,0 +1,1 @@
+{"system": "Ты ассистент.", "messages": [{"role": "user", "content": "пример"}, {"role": "assistant", "content": "ответ"}]}

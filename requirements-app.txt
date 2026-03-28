@@ -1,0 +1,15 @@
+# Ядро бота + LLM + схемы + конфиг
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-telegram-bot>=21.0
+requests>=2.31.0
+
+# PDF / изображения (OCR pipeline)
+pymupdf>=1.24.0
+Pillow>=10.0.0
+
+# Опционально: OCR (установите Tesseract OCR в систему)
+# pytesseract>=0.3.10
+
+# Опционально: PaddleOCR (тяжёлый, GPU)
+# paddlepaddle paddleocr

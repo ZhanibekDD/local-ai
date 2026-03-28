@@ -1,0 +1,46 @@
+=== АВТОЗАПУСК БОТА ЧЕРЕЗ SYSTEMD ===
+
+# Создание systemd сервиса
+sudo tee /etc/systemd/system/telegram-bot.service > /dev/null <<'EOF'
+[Unit]
+Description=Telegram AI Bot
+After=network.target ollama.service
+Requires=ollama.service
+
+[Service]
+Type=simple
+User=dnepr
+WorkingDirectory=/home/dnepr/telegram-bot
+ExecStart=/usr/bin/python3 /home/dnepr/telegram-bot/bot.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Перезагрузка systemd
+sudo systemctl daemon-reload
+
+# Включение автозапуска
+sudo systemctl enable telegram-bot
+
+# Запуск бота
+sudo systemctl start telegram-bot
+
+# Проверка статуса
+sudo systemctl status telegram-bot
+
+# Просмотр логов
+sudo journalctl -u telegram-bot -f
+
+
+=== УПРАВЛЕНИЕ ===
+
+Статус:      sudo systemctl status telegram-bot
+Остановка:   sudo systemctl stop telegram-bot
+Запуск:      sudo systemctl start telegram-bot
+Перезапуск:  sudo systemctl restart telegram-bot
+Логи:        sudo journalctl -u telegram-bot -f

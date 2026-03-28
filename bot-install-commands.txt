@@ -1,0 +1,115 @@
+pip3 install python-telegram-bot requests
+
+rm -f ~/telegram-bot/bot.py
+
+cat > ~/telegram-bot/bot.py << 'EOF'
+#!/usr/bin/env python3
+import logging
+import requests
+import base64
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+TOKEN = "<YOUR_BOT_TOKEN>"
+API = "http://localhost:11434"
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+class OllamaAPI:
+    def __init__(self):
+        self.url = API
+    
+    def generate(self, model, prompt):
+        try:
+            r = requests.post(f"{self.url}/api/generate", json={"model": model, "prompt": prompt, "stream": False}, timeout=300)
+            return r.json().get('response', '') if r.status_code == 200 else f"Error: {r.status_code}"
+        except Exception as e:
+            return f"Error: {e}"
+    
+    def generate_img(self, model, prompt, img):
+        try:
+            b64 = base64.b64encode(img).decode()
+            r = requests.post(f"{self.url}/api/generate", json={"model": model, "prompt": prompt, "images": [b64], "stream": False}, timeout=300)
+            return r.json().get('response', '') if r.status_code == 200 else f"Error: {r.status_code}"
+        except Exception as e:
+            return f"Error: {e}"
+    
+    def models(self):
+        try:
+            r = requests.get(f"{self.url}/api/tags", timeout=10)
+            return [m['name'] for m in r.json().get('models', [])] if r.status_code == 200 else []
+        except:
+            return []
+
+api = OllamaAPI()
+
+async def start(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    await u.message.reply_text("AI Bot Dell R760\n\n/ask - вопрос\n/code - код\n/models - модели")
+
+async def help_cmd(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    await u.message.reply_text("Текст - Qwen2.5\nФото - Vision\n/ask /code /models")
+
+async def models_cmd(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    m = api.models()
+    await u.message.reply_text("Модели:\n" + "\n".join([f"• {x}" for x in m]) if m else "Нет")
+
+async def ask_cmd(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    if not c.args:
+        await u.message.reply_text("/ask <вопрос>")
+        return
+    await u.message.reply_text("Думаю...")
+    r = api.generate("qwen2.5:72b", ' '.join(c.args))
+    for i in range(0, len(r), 4000):
+        await u.message.reply_text(r[i:i+4000])
+
+async def code_cmd(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    if not c.args:
+        await u.message.reply_text("/code <задача>")
+        return
+    await u.message.reply_text("Код...")
+    m = "deepseek-coder:33b" if "deepseek-coder:33b" in api.models() else "qwen2.5:72b"
+    r = api.generate(m, "Код: " + ' '.join(c.args))
+    for i in range(0, len(r), 4000):
+        await u.message.reply_text(r[i:i+4000])
+
+async def msg(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    await u.message.reply_text("Думаю...")
+    r = api.generate("qwen2.5:72b", u.message.text)
+    for i in range(0, len(r), 4000):
+        await u.message.reply_text(r[i:i+4000])
+
+async def photo(u: Update, c: ContextTypes.DEFAULT_TYPE):
+    await u.message.reply_text("Анализ...")
+    p = u.message.photo[-1]
+    f = await c.bot.get_file(p.file_id)
+    img = await f.download_as_bytearray()
+    cap = u.message.caption or "Опиши изображение"
+    m = api.models()
+    model = "llama3.2-vision:90b" if "llama3.2-vision:90b" in m else ("llava:34b" if "llava:34b" in m else None)
+    if not model:
+        await u.message.reply_text("Vision нет")
+        return
+    r = api.generate_img(model, cap, bytes(img))
+    for i in range(0, len(r), 4000):
+        await u.message.reply_text(r[i:i+4000])
+
+def main():
+    print("Запуск бота...")
+    app = Application.builder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_cmd))
+    app.add_handler(CommandHandler("models", models_cmd))
+    app.add_handler(CommandHandler("ask", ask_cmd))
+    app.add_handler(CommandHandler("code", code_cmd))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, msg))
+    app.add_handler(MessageHandler(filters.PHOTO, photo))
+    print("Бот работает!")
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+if __name__ == '__main__':
+    main()
+EOF
+
+chmod +x ~/telegram-bot/bot.py
+
+python3 ~/telegram-bot/bot.py

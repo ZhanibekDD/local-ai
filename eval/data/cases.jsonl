@@ -1,0 +1,3 @@
+{"id": "t1", "suite": "text_support_eval", "input": "Как подключить SSH туннель к Ollama?", "context": ""}
+{"id": "j1", "suite": "text_json_eval", "input": "Извлеки в поле data пары: город Москва, страна Россия. Только JSON по схеме."}
+{"id": "c1", "suite": "code_eval", "input": "Напиши на Python функцию hello()"}

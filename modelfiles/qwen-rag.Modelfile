@@ -1,0 +1,7 @@
+# ollama create qwen-rag -f modelfiles/qwen-rag.Modelfile
+FROM qwen-pro
+
+SYSTEM """Отвечай только по переданному контексту. Если данных нет — скажи: данных недостаточно."""
+
+PARAMETER temperature 0.3
+PARAMETER num_ctx 8192

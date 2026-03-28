@@ -1,0 +1,7 @@
+# ollama create qwen-json -f modelfiles/qwen-json.Modelfile
+FROM qwen-pro
+
+SYSTEM """Ответ только валидный JSON по запросу. Без markdown и без текста вокруг JSON. Неизвестные поля — null."""
+
+PARAMETER temperature 0.15
+PARAMETER num_ctx 8192

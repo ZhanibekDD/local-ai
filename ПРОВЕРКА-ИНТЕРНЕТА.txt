@@ -1,0 +1,13 @@
+ВЫПОЛНИТЕ НА СЕРВЕРЕ:
+
+ping -c 3 8.8.8.8
+
+ping -c 3 google.com
+
+curl -I https://api.telegram.org
+
+ip route show
+
+cat /etc/resolv.conf
+
+sudo ufw status
