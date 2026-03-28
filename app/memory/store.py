@@ -39,10 +39,21 @@ def init_db(db_path: Optional[Path] = None) -> None:
     c.execute(
         """CREATE TABLE IF NOT EXISTS user_settings
            (user_id INTEGER PRIMARY KEY,
-            show_reasoning INTEGER DEFAULT 0)"""
+            show_reasoning INTEGER DEFAULT 0,
+            force_ocr INTEGER DEFAULT 0)"""
     )
+    _migrate_user_settings_force_ocr(conn)
     conn.commit()
     conn.close()
+
+
+def _migrate_user_settings_force_ocr(conn: sqlite3.Connection) -> None:
+    """Добавить force_ocr к существующим БД без поломки show_reasoning."""
+    c = conn.cursor()
+    c.execute("PRAGMA table_info(user_settings)")
+    cols = {row[1] for row in c.fetchall()}
+    if "force_ocr" not in cols:
+        c.execute("ALTER TABLE user_settings ADD COLUMN force_ocr INTEGER DEFAULT 0")
 
 
 class ChatManager:
@@ -156,9 +167,44 @@ class ChatManager:
     def set_show_reasoning(self, user_id: int, value: bool) -> None:
         conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
-        c.execute(
-            "INSERT OR REPLACE INTO user_settings (user_id, show_reasoning) VALUES (?, ?)",
-            (user_id, 1 if value else 0),
-        )
+        c.execute("SELECT 1 FROM user_settings WHERE user_id = ?", (user_id,))
+        if c.fetchone() is None:
+            c.execute(
+                "INSERT INTO user_settings (user_id, show_reasoning, force_ocr) VALUES (?, ?, 0)",
+                (user_id, 1 if value else 0),
+            )
+        else:
+            c.execute(
+                "UPDATE user_settings SET show_reasoning = ? WHERE user_id = ?",
+                (1 if value else 0, user_id),
+            )
+        conn.commit()
+        conn.close()
+
+    def get_force_ocr(self, user_id: int) -> bool:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("SELECT force_ocr FROM user_settings WHERE user_id = ?", (user_id,))
+        row = c.fetchone()
+        conn.close()
+        if row is None or row[0] is None:
+            return False
+        return bool(row[0])
+
+    def set_force_ocr(self, user_id: int, value: bool) -> None:
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        c.execute("SELECT show_reasoning FROM user_settings WHERE user_id = ?", (user_id,))
+        row = c.fetchone()
+        if row is None:
+            c.execute(
+                "INSERT INTO user_settings (user_id, show_reasoning, force_ocr) VALUES (?, 1, ?)",
+                (user_id, 1 if value else 0),
+            )
+        else:
+            c.execute(
+                "UPDATE user_settings SET force_ocr = ? WHERE user_id = ?",
+                (1 if value else 0, user_id),
+            )
         conn.commit()
         conn.close()

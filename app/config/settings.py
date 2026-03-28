@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -42,10 +41,10 @@ class Settings(BaseSettings):
     retry_backoff_sec: float = 0.5
 
     ocr_lang: str = "rus+eng"
-    ocr_remote_url: Optional[str] = Field(
-        default=None,
+    ocr_remote_url: str = Field(
+        default="",
         alias="OCR_REMOTE_URL",
-        description="Если задан — сначала POST файла на этот URL (multipart, поле file), иначе локальный OCR по OCR_ENGINE.",
+        description="Если непустой — сначала POST файла на URL (multipart, поле file); иначе только локальный OCR.",
     )
     ocr_engine: str = Field(
         default="auto",

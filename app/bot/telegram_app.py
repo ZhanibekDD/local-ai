@@ -36,10 +36,10 @@ HELP_TEXT = """📖 Помощь
 💬 Текст — диалог с памятью чата; маршрут: чат / JSON / код (по смыслу).
 🧠 /reason — режим «РАССУЖДЕНИЕ» + «ОТВЕТ».
 💾 /chats — список чатов; кнопки «Мои чаты», «Новый чат».
-📄 /ocr — следующее фото будет обработано как документ: OCR + извлечение полей (не vision).
-🖼 Фото без /ocr и без «документной» подписи — описание сцены (vision).
-   Подпись с словами: чек, накладная, ocr, распознай, скан… — тоже OCR.
-📄 PDF/изображение как файл — всегда OCR + JSON по имени файла.
+📄 Кнопка «OCR: ВКЛ/ВЫКЛ» в меню — ручной режим OCR: пока включён, все фото и документы идут в OCR pipeline (текст + поля), без подписи «чек» и т.д.
+🖼 При выключенном OCR фото без «документной» подписи — vision; подпись с чек/накладная/ocr/скан… — OCR.
+📄 /ocr — то же, что переключение режима (вкл/выкл принудительного OCR).
+📄 Файл PDF/картинка — в режиме OCR выключен по-прежнему обрабатывается через OCR pipeline (документы).
 
 /route — как выбирается маршрут (без вызова модели).
 """
@@ -57,16 +57,22 @@ async def route_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 async def ocr_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Следующее фото в чате пойдёт в OCR-пайплайн, а не в vision."""
-    context.user_data["force_ocr_next"] = True
+    """Переключает сохранённый режим принудительного OCR (как кнопка в меню)."""
+    cm = ChatManager(get_settings().sqlite_path)
+    uid = update.effective_user.id
+    nv = not cm.get_force_ocr(uid)
+    cm.set_force_ocr(uid, nv)
     await update.message.reply_text(
-        "📄 Включён режим OCR для **следующего** фото (один раз).\n"
-        "Пришлите фото **как картинку**. Для PDF пришлите **файлом** (документ) — там OCR всегда."
+        "OCR режим включён. Теперь фото и документы будут отправляться в OCR."
+        if nv
+        else "OCR режим выключен. Снова работает обычная маршрутизация.",
+        reply_markup=_kb_main(uid, cm),
     )
 
 
 def _kb_main(user_id: int, cm: ChatManager) -> InlineKeyboardMarkup:
     rs = cm.get_show_reasoning(user_id)
+    fo = cm.get_force_ocr(user_id)
     return InlineKeyboardMarkup(
         [
             [
@@ -75,9 +81,6 @@ def _kb_main(user_id: int, cm: ChatManager) -> InlineKeyboardMarkup:
             ],
             [
                 InlineKeyboardButton("🖼️ Анализ изображения", callback_data="help_vision"),
-                InlineKeyboardButton("📄 OCR (след. фото)", callback_data="ocr_next"),
-            ],
-            [
                 InlineKeyboardButton("📚 Список моделей", callback_data="models"),
             ],
             [
@@ -92,6 +95,12 @@ def _kb_main(user_id: int, cm: ChatManager) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(
                     "🧠 Рассуждение: ВКЛ" if rs else "🧠 Рассуждение: ВЫКЛ",
                     callback_data="toggle_reasoning",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "📄 OCR: ВКЛ" if fo else "📄 OCR: ВЫКЛ",
+                    callback_data="toggle_ocr",
                 )
             ],
         ]
@@ -123,9 +132,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 • Текст → Qwen / DeepSeek (код)
 • «Верни JSON» → structured output
-• /ocr или подпись «чек/ocr/…» → OCR + JSON
-• Фото без этого → Llama Vision
-• Файл PDF/картинка → OCR + JSON
+• Меню «OCR: ВКЛ» — все фото/документы в OCR; «ВЫКЛ» — обычный роутер (vision / подпись / документ)
+• /ocr — переключить тот же режим
 
 Режим рассуждений: """ + (
         "ВКЛ" if rs else "ВЫКЛ"
@@ -230,7 +238,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     s = get_settings()
     cm = ChatManager(s.sqlite_path)
     caption = update.message.caption or ""
-    force_ocr = bool(context.user_data.pop("force_ocr_next", False))
+    force_ocr = cm.get_force_ocr(uid)
     status = await update.message.reply_text(
         "📄 OCR и извлечение полей…" if force_ocr else "🖼 Анализ изображения…"
     )
@@ -294,8 +302,10 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     doc = update.message.document
     if not doc:
         return
-    context.user_data.pop("force_ocr_next", None)
-    status = await update.message.reply_text("📄 Документ: извлечение…")
+    force_ocr = cm.get_force_ocr(uid)
+    status = await update.message.reply_text(
+        "📄 Документ: OCR и извлечение полей…" if force_ocr else "📄 Документ: извлечение…"
+    )
     fname = doc.file_name or "file.bin"
     data = await _download_tg_file(context, doc.file_id)
     client = OllamaClient()
@@ -355,8 +365,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await query.edit_message_text(f"✅ Чат активен.\n\n{prev}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]))
     elif query.data == "start":
         rs = cm.get_show_reasoning(uid)
+        fo = cm.get_force_ocr(uid)
         await query.edit_message_text(
-            "🤖 Меню. Рассуждения: " + ("ВКЛ" if rs else "ВЫКЛ"),
+            "🤖 Меню. Рассуждения: "
+            + ("ВКЛ" if rs else "ВЫКЛ")
+            + ". OCR: "
+            + ("ВКЛ" if fo else "ВЫКЛ"),
             reply_markup=_kb_main(uid, cm),
         )
     elif query.data == "toggle_reasoning":
@@ -365,6 +379,15 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "Режим: " + ("ВКЛ" if cm.get_show_reasoning(uid) else "ВЫКЛ"),
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
         )
+    elif query.data == "toggle_ocr":
+        nv = not cm.get_force_ocr(uid)
+        cm.set_force_ocr(uid, nv)
+        msg = (
+            "OCR режим включён. Теперь фото и документы будут отправляться в OCR."
+            if nv
+            else "OCR режим выключен. Снова работает обычная маршрутизация."
+        )
+        await query.edit_message_text(msg, reply_markup=_kb_main(uid, cm))
     elif query.data == "models":
         client = OllamaClient()
         models = await asyncio.to_thread(client.list_models)
@@ -393,17 +416,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "💻 Задачи с кодом, SQL, скриптами — маршрутизатор выберет DeepSeek Coder.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
         )
-    elif query.data == "ocr_next":
-        context.user_data["force_ocr_next"] = True
-        await query.edit_message_text(
-            "📄 Следующее **фото** будет обработано через OCR (текст + поля), не через vision.\n"
-            "Отправьте изображение одним сообщением.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
-        )
     elif query.data == "help_vision":
         await query.edit_message_text(
-            "🖼 Обычное фото без подписи — описание сцены (vision). "
-            "Нужен текст документа: команда /ocr, кнопка «OCR», подпись (чек, ocr, скан…) или файл PDF/картинка.",
+            "🖼 При выключенном OCR фото без подписи — описание сцены (vision). "
+            "Включите «📄 OCR: ВКЛ» в меню или /ocr — тогда все фото пойдут в OCR. "
+            "Или подпись: чек, накладная, ocr, скан… Документы-файлы — через OCR pipeline.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
         )
     elif query.data == "help":

@@ -18,8 +18,12 @@ logger = logging.getLogger(__name__)
 
 
 def _extract_via_remote(url: str, data: bytes, filename: str) -> tuple[str, list[str]]:
-    """POST multipart/form-data, поле ``file``. Ответ: JSON с text/raw_text/extracted_text/content или text/plain."""
-    trace = [f"remote_post={url}"]
+    """POST multipart/form-data, поле ``file``.
+
+    Ожидаемый JSON (приоритет): ``{ "filename", "text", "trace": [...] }``.
+    Иначе — поля text / raw_text / extracted_text / ocr_text / content; либо text/plain.
+    """
+    trace: list[str] = [f"remote_post={url}"]
     safe_name = filename.strip() or "document.bin"
     r = requests.post(
         url,
@@ -32,17 +36,30 @@ def _extract_via_remote(url: str, data: bytes, filename: str) -> tuple[str, list
     except ValueError:
         body = None
     if isinstance(body, dict):
-        for key in ("text", "raw_text", "extracted_text", "ocr_text", "content"):
-            val = body.get(key)
-            if isinstance(val, str) and val.strip():
+        raw_trace = body.get("trace")
+        if isinstance(raw_trace, list):
+            for item in raw_trace:
+                trace.append(f"remote:{item!s}")
+        elif raw_trace is not None:
+            trace.append(f"remote:{raw_trace}")
+        fn = body.get("filename")
+        if isinstance(fn, str) and fn.strip():
+            trace.append(f"remote_filename={fn}")
+        val = body.get("text")
+        if isinstance(val, str) and val.strip():
+            trace.append("remote_schema=text+trace")
+            return val, trace + ["engine=remote_http"]
+        for key in ("raw_text", "extracted_text", "ocr_text", "content"):
+            alt = body.get(key)
+            if isinstance(alt, str) and alt.strip():
                 trace.append(f"remote_json_key={key}")
-                return val, trace
+                return alt, trace + ["engine=remote_http"]
         raise ValueError("remote OCR JSON без текстового поля")
     text = r.text.strip()
     if not text:
         raise ValueError("remote OCR пустой ответ")
     trace.append("remote_body=plain")
-    return text, trace
+    return text, trace + ["engine=remote_http"]
 
 
 def _bytes_looks_pdf(b: bytes) -> bool:
@@ -82,8 +99,7 @@ def extract_text_from_file(data: bytes, filename: str) -> tuple[str, list[str]]:
     remote = (s.ocr_remote_url or "").strip()
     if remote:
         try:
-            text, tr = _extract_via_remote(remote, data, filename)
-            return text, tr + ["engine=remote_http"]
+            return _extract_via_remote(remote, data, filename)
         except Exception as e:
             logger.warning("remote OCR failed, local fallback: %s", e)
             trace.append(f"remote_ocr_error:{type(e).__name__}:{e}")
