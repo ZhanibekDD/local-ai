@@ -42,7 +42,18 @@ class Settings(BaseSettings):
     retry_backoff_sec: float = 0.5
 
     ocr_lang: str = "rus+eng"
-    ocr_engine: str = Field(default="auto", description="auto | pymupdf | tesseract | paddle")
+    ocr_engine: str = Field(
+        default="auto",
+        description="auto: текст PDF → при необходимости OCR; pymupdf: только текст слоя; tesseract: растр+Tesseract; paddle: PaddleOCR если установлен, иначе как auto",
+    )
+
+    router_llm_disambiguate: bool = Field(
+        default=False,
+        alias="ROUTER_LLM_DISAMBIGUATE",
+        description="Если True и margin низкий — уточнить маршрут коротким вызовом Qwen-json",
+    )
+    router_ambiguous_margin: float = Field(default=0.15, alias="ROUTER_AMBIGUOUS_MARGIN")
+    router_llm_min_confidence: float = Field(default=0.55, alias="ROUTER_LLM_MIN_CONFIDENCE")
 
     eval_data_dir: Path = Field(default=Path("eval/data"))
     eval_report_dir: Path = Field(default=Path("eval/reports"))

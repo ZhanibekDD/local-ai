@@ -41,6 +41,7 @@ def process_text_chat(
         has_photo=False,
         has_document=False,
         mime=None,
+        ollama_client=client,
     )
     s = get_settings()
     out: dict[str, Any] = {
@@ -51,11 +52,6 @@ def process_text_chat(
         "response": "",
         "fallback": False,
     }
-
-    # Неясный тип → чат
-    if decision.task == TaskType.UNKNOWN:
-        decision.task = TaskType.CHAT
-        out["fallback"] = True
 
     if decision.task == TaskType.CODE:
         model = _code_pref(models)

@@ -76,7 +76,7 @@ def _kb_main(user_id: int, cm: ChatManager) -> InlineKeyboardMarkup:
             ],
             [
                 InlineKeyboardButton(
-                    "🧠 Рассуждение: ВКЛ" if not rs else "🧠 Рассуждение: ВЫКЛ",
+                    "🧠 Рассуждение: ВКЛ" if rs else "🧠 Рассуждение: ВЫКЛ",
                     callback_data="toggle_reasoning",
                 )
             ],

@@ -1,10 +1,16 @@
 # Быстрый старт
 
 1. Python 3.10+.
-2. Установка зависимостей:
+2. Установка зависимостей (единый способ, см. `pyproject.toml`):
 
 ```bash
-pip install -r requirements-app.txt
+pip install -e .
+```
+
+Опционально: инструменты разработки и SSH-скрипты (`paramiko`):
+
+```bash
+pip install -e ".[dev,ssh]"
 ```
 
 3. Скопируйте `.env.example` в `.env` и задайте `TELEGRAM_BOT_TOKEN`. При необходимости — `OLLAMA_BASE_URL` (по умолчанию `http://localhost:11434`).

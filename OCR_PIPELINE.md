@@ -1,20 +1,24 @@
 # OCR pipeline
 
-## Цепочка
+## Реализация (`app/ocr/extract_text.py`)
 
-1. **PDF**: PyMuPDF (`fitz`) — извлечение текстового слоя.
-2. Если текста мало — рендер страниц в растр и **Tesseract** (если установлены `pytesseract` и бинарник Tesseract в PATH).
-3. **Изображение**: Tesseract через `app/ocr/tesseract_backend.py`.
-4. Сырой текст + опциональная подсказка из подписи → **Qwen** с `format=json` и Pydantic-схемой (`app/structured/output.py` через `run_document_extraction` в `app/ocr/pipeline.py`).
+Переменная **`OCR_ENGINE`** (см. `Settings.ocr_engine`) задаёт фактическое поведение:
 
-## Настройки
+| Значение | PDF | Изображение |
+|----------|-----|-------------|
+| **auto** | Текстовый слой PyMuPDF; если текста мало — растр страниц + Tesseract | Tesseract |
+| **pymupdf** | Только текстовый слой | Пустой текст (в trace — `pymupdf_skip_image`) |
+| **tesseract** | Всегда растр + Tesseract | Tesseract |
+| **paddle** | PaddleOCR (`app/ocr/paddle_backend.py`), если установлен `paddleocr`; иначе trace `paddle_fallback` и режим как **auto** | То же |
 
-- `ocr_lang` в `Settings` (по умолчанию `rus+eng`).
-- Замена движка: реализовать `OcrEngine` в `app/ocr/base.py` и подключить в `pipeline.py`.
+Дальше: сырой текст → `run_document_extraction` → Qwen `format=json` + Pydantic (`app/ocr/pipeline.py`).
 
 ## Зависимости
 
-- Обязательно: `pymupdf`, `Pillow`.
-- Опционально: `pytesseract` + установка [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) в систему.
+- Обязательно: `pymupdf`, `Pillow`, `numpy` (для опционального Paddle).
+- Tesseract: бинарник в PATH + пакет `pytesseract` (опционально).
+- PaddleOCR: установка вручную (`paddleocr` / `paddlepaddle`), не входит в базовые зависимости `pyproject.toml`.
 
-PaddleOCR можно добавить отдельным backend-классом без смены контрактов.
+## Схемы извлечения
+
+См. `app/ocr/schema_pick.py`: накладная, чек, тикет, классификация документа или универсальный `OcrParsedFields`.

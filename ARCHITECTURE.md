@@ -30,4 +30,8 @@
 
 ## Документы OCR
 
-`app/ocr/schema_pick.py` выбирает схему **чек** (`ReceiptExtraction`) или **накладная** (`InvoiceExtraction`) по имени файла и подписи.
+`app/ocr/extract_text.py` реализует режимы `OCR_ENGINE`. `app/ocr/schema_pick.py` выбирает Pydantic-схему (накладная, чек, тикет, классификация или `OcrParsedFields`).
+
+## Маршрутизация
+
+`app/router/scoring.py` (веса) + `classifier.py`; опционально `llm_disambiguate.py` при низкой уверенности.

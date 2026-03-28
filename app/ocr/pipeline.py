@@ -10,8 +10,7 @@ from pydantic import BaseModel
 
 from app.config.settings import get_settings
 from app.llm.ollama_client import OllamaClient, pick_model
-from app.ocr.pdf_text import extract_pdf_text
-from app.ocr.tesseract_backend import TesseractEngine
+from app.ocr.extract_text import extract_text_from_file
 from app.structured.output import generate_structured
 
 logger = logging.getLogger(__name__)
@@ -24,50 +23,6 @@ class OcrPipelineResult:
     structured: Optional[BaseModel]
     status: str
     engine_trace: list[str]
-
-
-def _bytes_looks_pdf(b: bytes) -> bool:
-    return b[:4] == b"%PDF"
-
-
-def extract_text_from_file(
-    data: bytes,
-    filename: str,
-) -> tuple[str, list[str]]:
-    trace: list[str] = []
-    s = get_settings()
-    if _bytes_looks_pdf(data) or filename.lower().endswith(".pdf"):
-        text, pages = extract_pdf_text(data)
-        trace.append(f"pymupdf_pages={pages}")
-        if len(text.strip()) >= 40:
-            trace.append("used_native_pdf_text")
-            return text, trace
-        trace.append("pdf_low_text_try_ocr")
-        eng = TesseractEngine()
-        try:
-            import fitz
-
-            doc = fitz.open(stream=data, filetype="pdf")
-            mat = fitz.Matrix(2.0, 2.0)
-            chunks: list[str] = []
-            for i in range(min(doc.page_count, 20)):
-                pix = doc.load_page(i).get_pixmap(matrix=mat)
-                img_bytes = pix.tobytes("png")
-                r = eng.image_to_text(img_bytes)
-                chunks.append(r.text)
-                trace.append(f"page_{i}_ocr={eng.name()}")
-            doc.close()
-            return "\n".join(chunks), trace
-        except Exception as e:
-            trace.append(f"pdf_ocr_fail:{e}")
-            return text, trace
-
-    eng = TesseractEngine()
-    r = eng.image_to_text(data)
-    trace.append(f"image_ocr={eng.name()}")
-    if r.warning:
-        trace.append(f"warn:{r.warning}")
-    return r.text, trace
 
 
 def run_document_extraction(

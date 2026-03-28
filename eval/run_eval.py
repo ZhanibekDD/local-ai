@@ -19,6 +19,8 @@ from app.llm.ollama_client import OllamaClient, pick_model
 from app.structured.output import generate_structured
 from app.schemas.flexible import FlexibleExtraction
 from app.bot.pipeline import process_text_chat
+from app.ocr.pipeline import run_document_extraction
+from app.schemas.receipt import ReceiptExtraction
 
 
 def load_cases(path: Path) -> list[dict[str, Any]]:
@@ -64,9 +66,20 @@ def run_one(case: dict[str, Any], client: OllamaClient) -> dict[str, Any]:
         return out
 
     if suite == "vision_docs_eval":
+        fp = case.get("fixture_path")
+        p = Path(fp) if fp else None
+        if p and p.is_file():
+            data = p.read_bytes()
+            fname = case.get("fixture_name", p.name)
+            res = run_document_extraction(client, data, fname, ReceiptExtraction, case.get("extra_hint", ""))
+            out["latency_ms"] = (time.perf_counter() - t0) * 1000
+            out["ok"] = res.structured is not None
+            out["ocr_status"] = res.status
+            out["fixture"] = str(p)
+            return out
         out["latency_ms"] = (time.perf_counter() - t0) * 1000
         out["skipped"] = True
-        out["note"] = "нужны бинарные фикстуры изображений; прогон вручную через бота"
+        out["note"] = "добавьте в кейс fixture_path к файлу изображения/PDF или гоняйте через бота"
         out["ok"] = True
         return out
 

@@ -1,4 +1,9 @@
-"""Structured output через Ollama format=json + pydantic + ретраи."""
+"""Structured output: Ollama `format=json` + текстовая JSON Schema в промпте + Pydantic post-validation.
+
+Это не «жёсткая» схема на стороне движка генерации: модель может ошибиться, ретраи и
+`repair_and_validate` снижают риск. Для максимальной строгосты смотрите версии Ollama с
+нативной привязкой schema (если доступны для вашей версии) и дублируйте проверку в Python.
+"""
 
 from __future__ import annotations
 

@@ -79,7 +79,7 @@
 8. **`install-ai-models.ps1`** - PowerShell скрипт (альтернатива)
 9. **`download-models.ps1`** - Инструкции для загрузки моделей
 10. **`quick-install.md`** - Краткая версия инструкции
-11. **`requirements.txt`** - Python зависимости
+11. **`pyproject.toml`** — зависимости локального бота и пакета `app` (установка: `pip install -e .`; см. **QUICKSTART.md**). Корневой **`requirements.txt`** дублирует только подсказку по установке.
 
 ---
 

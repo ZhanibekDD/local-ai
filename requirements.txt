@@ -1,1 +1,10 @@
-paramiko>=3.4.0
+# Единая установка зависимостей проекта (см. pyproject.toml).
+#
+# Приложение + бот + API + OCR:
+#   pip install -e .
+#
+# С инструментами разработки и SSH-скриптами (paramiko):
+#   pip install -e ".[dev,ssh]"
+#
+# Только зависимости без установки пакета app как editable:
+#   pip install "requests>=2.31" "python-telegram-bot>=21" "pydantic>=2.5" "pydantic-settings>=2.1" "fastapi>=0.110" "uvicorn[standard]>=0.27" "pymupdf>=1.24" "Pillow>=10"
