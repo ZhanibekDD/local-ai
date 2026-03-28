@@ -65,4 +65,11 @@ python eval/generate_report.py
 
 ## Лицензия
 
-Уточните у владельца репозитория.
+[MIT](LICENSE).
+
+## Тесты (smoke)
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
