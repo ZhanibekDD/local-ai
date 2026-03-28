@@ -36,8 +36,10 @@ HELP_TEXT = """📖 Помощь
 💬 Текст — диалог с памятью чата; маршрут: чат / JSON / код (по смыслу).
 🧠 /reason — режим «РАССУЖДЕНИЕ» + «ОТВЕТ».
 💾 /chats — список чатов; кнопки «Мои чаты», «Новый чат».
-🖼 Фото — анализ сцены; подпись про чек/накладную — OCR + поля.
-📄 PDF/фото как файл — извлечение реквизитов (чек или накладная по имени).
+📄 /ocr — следующее фото будет обработано как документ: OCR + извлечение полей (не vision).
+🖼 Фото без /ocr и без «документной» подписи — описание сцены (vision).
+   Подпись с словами: чек, накладная, ocr, распознай, скан… — тоже OCR.
+📄 PDF/изображение как файл — всегда OCR + JSON по имени файла.
 
 /route — как выбирается маршрут (без вызова модели).
 """
@@ -54,6 +56,15 @@ async def route_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text(t[:4000])
 
 
+async def ocr_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Следующее фото в чате пойдёт в OCR-пайплайн, а не в vision."""
+    context.user_data["force_ocr_next"] = True
+    await update.message.reply_text(
+        "📄 Включён режим OCR для **следующего** фото (один раз).\n"
+        "Пришлите фото **как картинку**. Для PDF пришлите **файлом** (документ) — там OCR всегда."
+    )
+
+
 def _kb_main(user_id: int, cm: ChatManager) -> InlineKeyboardMarkup:
     rs = cm.get_show_reasoning(user_id)
     return InlineKeyboardMarkup(
@@ -64,6 +75,9 @@ def _kb_main(user_id: int, cm: ChatManager) -> InlineKeyboardMarkup:
             ],
             [
                 InlineKeyboardButton("🖼️ Анализ изображения", callback_data="help_vision"),
+                InlineKeyboardButton("📄 OCR (след. фото)", callback_data="ocr_next"),
+            ],
+            [
                 InlineKeyboardButton("📚 Список моделей", callback_data="models"),
             ],
             [
@@ -109,8 +123,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 • Текст → Qwen / DeepSeek (код)
 • «Верни JSON» → structured output
-• Фото/PDF чека → OCR + JSON
-• Фото сцены → Llama Vision
+• /ocr или подпись «чек/ocr/…» → OCR + JSON
+• Фото без этого → Llama Vision
+• Файл PDF/картинка → OCR + JSON
 
 Режим рассуждений: """ + (
         "ВКЛ" if rs else "ВЫКЛ"
@@ -215,19 +230,26 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     s = get_settings()
     cm = ChatManager(s.sqlite_path)
     caption = update.message.caption or ""
-    status = await update.message.reply_text("🖼 Анализ изображения…")
+    force_ocr = bool(context.user_data.pop("force_ocr_next", False))
+    status = await update.message.reply_text(
+        "📄 OCR и извлечение полей…" if force_ocr else "🖼 Анализ изображения…"
+    )
     photo = update.message.photo[-1]
     data = await _download_tg_file(context, photo.file_id)
-    decision = classify_incoming(
-        text=caption,
-        has_photo=True,
-        has_document=False,
-        mime="image/jpeg",
+    decision = (
+        None
+        if force_ocr
+        else classify_incoming(
+            text=caption,
+            has_photo=True,
+            has_document=False,
+            mime="image/jpeg",
+        )
     )
     client = OllamaClient()
     text_out = ""
     try:
-        if decision.task == TaskType.DOCUMENT_OCR:
+        if force_ocr or (decision is not None and decision.task == TaskType.DOCUMENT_OCR):
             schema_cls = pick_document_schema("image.jpg", caption)
             res = await asyncio.to_thread(
                 run_document_extraction,
@@ -272,6 +294,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     doc = update.message.document
     if not doc:
         return
+    context.user_data.pop("force_ocr_next", None)
     status = await update.message.reply_text("📄 Документ: извлечение…")
     fname = doc.file_name or "file.bin"
     data = await _download_tg_file(context, doc.file_id)
@@ -370,10 +393,17 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "💻 Задачи с кодом, SQL, скриптами — маршрутизатор выберет DeepSeek Coder.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
         )
+    elif query.data == "ocr_next":
+        context.user_data["force_ocr_next"] = True
+        await query.edit_message_text(
+            "📄 Следующее **фото** будет обработано через OCR (текст + поля), не через vision.\n"
+            "Отправьте изображение одним сообщением.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
+        )
     elif query.data == "help_vision":
         await query.edit_message_text(
-            "🖼 Фото без «документных» слов в подписи — описание через Llama Vision. "
-            "Если нужен чек/накладная — напишите в подписи или пришлите файлом.",
+            "🖼 Обычное фото без подписи — описание сцены (vision). "
+            "Нужен текст документа: команда /ocr, кнопка «OCR», подпись (чек, ocr, скан…) или файл PDF/картинка.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Меню", callback_data="start")]]),
         )
     elif query.data == "help":
@@ -409,6 +439,7 @@ def main() -> None:
     app.add_handler(CommandHandler("chats", my_chats_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("route", route_command))
+    app.add_handler(CommandHandler("ocr", ocr_command))
     app.add_handler(CommandHandler("reason", reason_command))
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
