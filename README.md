@@ -18,6 +18,8 @@
 
 Подробнее: [ARCHITECTURE.md](ARCHITECTURE.md), [ROUTING.md](ROUTING.md), [OCR_PIPELINE.md](OCR_PIPELINE.md), [EVAL.md](EVAL.md), [QUICKSTART.md](QUICKSTART.md), [docs/FINETUNING.md](docs/FINETUNING.md) (первый цикл SFT: Qwen2.5-14B-Instruct, датасеты, объёмы). Данные и скрипты под SFT: [data/sft/README.md](data/sft/README.md), каталог `training/`. **Пошагово на своём сервере:** [docs/RUNBOOK-SERVER.md](docs/RUNBOOK-SERVER.md).
 
+**Продолжение с другого ПК / для ИИ:** [docs/HANDOFF.md](docs/HANDOFF.md), [AGENTS.md](AGENTS.md).
+
 ## Требования
 
 - Python 3.10+
