@@ -18,18 +18,78 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _extract_via_remote(url: str, data: bytes, filename: str) -> tuple[str, list[str]]:
-    """POST multipart/form-data, поле ``file``.
+def _extend_trace_from_payload(trace: list[str], payload: dict) -> None:
+    t = payload.get("trace")
+    if isinstance(t, list):
+        for item in t:
+            trace.append(f"remote:{item!s}")
+    elif t is not None:
+        trace.append(f"remote:{t!s}")
 
-    Ожидаемый JSON (приоритет): ``{ "filename", "text", "trace": [...] }``.
-    Иначе — поля text / raw_text / extracted_text / ocr_text / content; либо text/plain.
+
+def _join_rec_texts(items: list) -> str:
+    return "\n".join(str(x).strip() for x in items if str(x).strip()).strip()
+
+
+def _parse_remote_ocr_payload(body: dict, trace: list[str]) -> tuple[str, list[str]] | None:
     """
+    Достаёт текст из разных форматов OCR API: плоский text, вложенные res/result/data,
+    rec_texts (Paddle и др.), запасные ключи и непустой fields.
+    """
+    _extend_trace_from_payload(trace, body)
+    fn = body.get("filename")
+    if isinstance(fn, str) and fn.strip():
+        trace.append(f"remote_filename={fn}")
+
+    val = body.get("text")
+    if isinstance(val, str) and val.strip():
+        trace.append("remote_key=text")
+        return val.strip(), trace + ["engine=remote_http"]
+
+    for nest in ("res", "result", "data"):
+        node = body.get(nest)
+        if not isinstance(node, dict):
+            continue
+        nt = node.get("text")
+        if isinstance(nt, str) and nt.strip():
+            trace.append(f"nested:{nest}.text")
+            return nt.strip(), trace + ["engine=remote_http"]
+        rec = node.get("rec_texts")
+        if isinstance(rec, list):
+            joined = _join_rec_texts(rec)
+            if joined:
+                trace.append(f"nested:{nest}.rec_texts")
+                return joined, trace + ["engine=remote_http"]
+
+    rec_top = body.get("rec_texts")
+    if isinstance(rec_top, list):
+        joined = _join_rec_texts(rec_top)
+        if joined:
+            trace.append("top_level.rec_texts")
+            return joined, trace + ["engine=remote_http"]
+
+    for key in ("raw_text", "raw_text_excerpt", "extracted_text", "ocr_text", "content"):
+        alt = body.get(key)
+        if isinstance(alt, str) and alt.strip():
+            trace.append(f"remote_json_key={key}")
+            return alt, trace + ["engine=remote_http"]
+
+    fld = body.get("fields")
+    if isinstance(fld, dict) and fld:
+        trace.append("remote_json_key=fields")
+        return json.dumps(fld, ensure_ascii=False), trace + ["engine=remote_http"]
+
+    return None
+
+
+def _extract_via_remote(url: str, data: bytes, filename: str) -> tuple[str, list[str]]:
+    """POST multipart/form-data, поле ``file``. Терпимый разбор JSON + text/plain."""
     trace: list[str] = [f"remote_post={url}"]
     safe_name = filename.strip() or "document.bin"
     r = requests.post(
         url,
-        files={"file": (safe_name, data)},
-        timeout=(15, 180),
+        files={"file": (safe_name, data, "application/octet-stream")},
+        timeout=(30, 300),
     )
     r.raise_for_status()
     try:
@@ -37,28 +97,9 @@ def _extract_via_remote(url: str, data: bytes, filename: str) -> tuple[str, list
     except ValueError:
         body = None
     if isinstance(body, dict):
-        raw_trace = body.get("trace")
-        if isinstance(raw_trace, list):
-            for item in raw_trace:
-                trace.append(f"remote:{item!s}")
-        elif raw_trace is not None:
-            trace.append(f"remote:{raw_trace}")
-        fn = body.get("filename")
-        if isinstance(fn, str) and fn.strip():
-            trace.append(f"remote_filename={fn}")
-        val = body.get("text")
-        if isinstance(val, str) and val.strip():
-            trace.append("remote_schema=text+trace")
-            return val, trace + ["engine=remote_http"]
-        for key in ("raw_text", "raw_text_excerpt", "extracted_text", "ocr_text", "content"):
-            alt = body.get(key)
-            if isinstance(alt, str) and alt.strip():
-                trace.append(f"remote_json_key={key}")
-                return alt, trace + ["engine=remote_http"]
-        fld = body.get("fields")
-        if isinstance(fld, dict) and fld:
-            trace.append("remote_json_key=fields")
-            return json.dumps(fld, ensure_ascii=False), trace + ["engine=remote_http"]
+        parsed = _parse_remote_ocr_payload(body, trace)
+        if parsed is not None:
+            return parsed
         raise ValueError("remote OCR JSON без текстового поля")
     text = r.text.strip()
     if not text:

@@ -2,7 +2,7 @@
 
 ## Реализация (`app/ocr/extract_text.py`)
 
-Переменная **`OCR_REMOTE_URL`** (см. `.env.example`): если задана непустая строка, сначала **POST** файла (`multipart/form-data`, поле **`file`**). Предпочтительный ответ JSON: `{ "filename", "text", "trace": [...] }`; также `raw_text`, `raw_text_excerpt`, `extracted_text`, непустой `fields` (как JSON-строка), `text/plain`. При ошибке — **fallback** на локальные движки ниже.
+Переменная **`OCR_REMOTE_URL`** (см. `.env.example`): если задана непустая строка, сначала **POST** файла (`multipart/form-data`, поле **`file`**). Поддерживаемые JSON-форматы: верхний уровень `text` + опционально `trace`; вложенные `res` / `result` / `data` с полем `text` или списком `rec_texts` (строки склеиваются через `\n`); верхний уровень `rec_texts`; запасные ключи `raw_text`, `raw_text_excerpt`, …; непустой `fields`; либо `text/plain`. При ошибке — **fallback** на локальные движки ниже.
 
 Переменная **`OCR_ENGINE`** (см. `Settings.ocr_engine`) задаёт локальное поведение (если remote не задан или упал):
 
