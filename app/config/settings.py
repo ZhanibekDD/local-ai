@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     )
     ocr_engine: str = Field(
         default="auto",
+        alias="OCR_ENGINE",
         description="auto: текст PDF → при необходимости OCR; pymupdf: только текст слоя; tesseract: растр+Tesseract; paddle: PaddleOCR если установлен, иначе как auto",
     )
 
